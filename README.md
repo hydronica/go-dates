@@ -1,11 +1,10 @@
 # Dates Go Library
-
 This is a simple Go library that provides helper functions and methods for calculating various date ranges and specific dates. It's designed to simplify date calculations and manipulations in your Go applications.
 
 ## Features
 
 - **Week Struct**: Defines a week with a start and end day. You can create a new week with custom start and end days.
-- **Date Function**: Creates a new date with the time truncated to midnight UTC.
+- **Date Function**: Creates a new date with the time truncated.
 - **Day Function**: Returns the truncated date of the given time.
 - **LastDayOfMonth Function**: Returns the last day of the month for a given date.
 - **WeekAdd Function**: Adds or subtracts weeks from a given date.
@@ -20,8 +19,8 @@ This is a simple Go library that provides helper functions and methods for calcu
 - **PrevMonthToDate Function**: Returns the start and end dates of the previous month to the given date.
 - **PrevYearMtd Function**: Returns the start and end dates up to a given date of the same month in the previous year.
 - **YearToDate Function**: Returns the start of the year and end date from a given date.
-- **PreviousYearToDate Function**: Returns the start and end dates of the previous year.
-- **StartOfMonth Function**: Returns the first day of the given date's month at midnight UTC.
+- **PreviousYearToDate Function**: Returns the start and end dates of the previous year for the given date.
+- **StartOfMonth Function**: Returns the first day of the given date's month.
 
 ## Usage
 
