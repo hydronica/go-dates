@@ -19,7 +19,7 @@ This is a simple Go library that provides helper functions and methods for calcu
 - **PrevMonthToDate Function**: Returns the start and end dates of the previous month to the given date.
 - **PrevYearMtd Function**: Returns the start and end dates up to a given date of the same month in the previous year.
 - **YearToDate Function**: Returns the start of the year and end date from a given date.
-- **PreviousYearToDate Function**: Returns the start and end dates of the previous year for the given date.
+- **PrevYearToDate Function**: Returns the start and end dates of the previous year for the given date.
 - **StartOfMonth Function**: Returns the first day of the given date's month.
 
 ## todo:

@@ -249,9 +249,9 @@ func TestPrevYearMtd(t *testing.T) {
 	trial.New(fn, cases).SubTest(t)
 }
 
-func TestPreviousYearToDate(t *testing.T) {
+func TestPrevYearToDate(t *testing.T) {
 	fn := func(in time.Time) (output, error) {
-		start, end := PreviousYearToDate(in)
+		start, end := PrevYearToDate(in)
 		return output{
 			start: start,
 			end:   end,

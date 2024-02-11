@@ -72,7 +72,7 @@ func Date(year int, month time.Month, day int) time.Time {
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 }
 
-// Day returns the tuncated date of the given time t
+// Day returns the tuncated date to the day of the given time t
 func Day(t time.Time) time.Time {
 	return Date(t.Year(), t.Month(), t.Day())
 }
@@ -209,8 +209,8 @@ func YearToDate(t time.Time) (start, end time.Time) {
 	return start, end
 }
 
-// PreviousYearToDate returns the start and end dates of the previous year
-func PreviousYearToDate(t time.Time) (start, end time.Time) {
+// PrevYearToDate returns the start and end dates of the previous year
+func PrevYearToDate(t time.Time) (start, end time.Time) {
 	start = Date(t.Year()-1, 1, 1)
 	end = Date(t.Year()-1, t.Month(), t.Day())
 	// accounts for leap day
