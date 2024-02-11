@@ -22,6 +22,9 @@ This is a simple Go library that provides helper functions and methods for calcu
 - **PreviousYearToDate Function**: Returns the start and end dates of the previous year for the given date.
 - **StartOfMonth Function**: Returns the first day of the given date's month.
 
+## todo:
+- currently in the process of adding calulated holiday functions
+
 ## Usage
 
 To use this library, import it in your Go application:
