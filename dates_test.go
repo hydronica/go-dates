@@ -12,8 +12,48 @@ type output struct {
 	end   time.Time
 }
 
+func TestNewWeek(t *testing.T) {
+
+	fn := func(in []time.Weekday) (Week, error) {
+		return NewWeek(in...), nil
+	}
+
+	cases := trial.Cases[[]time.Weekday, Week]{
+		"default": {
+			Input:    nil,
+			Expected: Week{weekStart: StartDefault, weekEnd: EndDefault},
+		},
+		"tues to mon": {
+			Input:    []time.Weekday{time.Tuesday, time.Monday},
+			Expected: Week{weekStart: time.Tuesday, weekEnd: time.Monday},
+		},
+		"fri to thurs": {
+			Input:    []time.Weekday{time.Friday, time.Thursday},
+			Expected: Week{weekStart: time.Friday, weekEnd: time.Thursday},
+		},
+		"invalid week": {
+			Input:    []time.Weekday{time.Monday, time.Saturday},
+			Expected: Week{weekStart: StartDefault, weekEnd: EndDefault},
+		},
+		"not enough days invalid": {
+			Input:    []time.Weekday{time.Sunday, time.Friday},
+			Expected: Week{weekStart: StartDefault, weekEnd: EndDefault},
+		},
+		"too few days given invalid": {
+			Input:    []time.Weekday{time.Sunday},
+			Expected: Week{weekStart: StartDefault, weekEnd: EndDefault},
+		},
+		"too many days use only first 2": { // extra days are ignored
+			Input:    []time.Weekday{time.Sunday, time.Saturday, time.Monday},
+			Expected: Week{weekStart: time.Sunday, weekEnd: time.Saturday},
+		},
+	}
+
+	trial.New(fn, cases).SubTest(t)
+}
+
 func TestLastFullWeek(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
+	d := NewWeek(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
 		start, end := d.LastFullWeek(in)
 		return output{
@@ -24,17 +64,17 @@ func TestLastFullWeek(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"normal date": {
-			Input: d.Date(2024, 02, 05),
+			Input: Date(2024, 02, 05),
 			Expected: output{
-				start: d.Date(2024, 01, 29),
-				end:   d.Date(2024, 02, 04),
+				start: Date(2024, 01, 29),
+				end:   Date(2024, 02, 04),
 			},
 		},
 		"previous year": {
-			Input: d.Date(2024, 01, 03),
+			Input: Date(2024, 01, 03),
 			Expected: output{
-				start: d.Date(2023, 12, 25),
-				end:   d.Date(2023, 12, 31),
+				start: Date(2023, 12, 25),
+				end:   Date(2023, 12, 31),
 			},
 		},
 	}
@@ -43,7 +83,7 @@ func TestLastFullWeek(t *testing.T) {
 }
 
 func TestLastFullWeekSundayStart(t *testing.T) {
-	d := NewBase(time.Sunday, time.Saturday)
+	d := NewWeek(time.Sunday, time.Saturday)
 	fn := func(in time.Time) (output, error) {
 		start, end := d.LastFullWeek(in)
 		return output{
@@ -54,17 +94,17 @@ func TestLastFullWeekSundayStart(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"normal date": {
-			Input: d.Date(2024, 02, 05),
+			Input: Date(2024, 02, 05),
 			Expected: output{
-				start: d.Date(2024, 01, 28),
-				end:   d.Date(2024, 02, 03),
+				start: Date(2024, 01, 28),
+				end:   Date(2024, 02, 03),
 			},
 		},
 		"previous year": {
-			Input: d.Date(2024, 01, 03),
+			Input: Date(2024, 01, 03),
 			Expected: output{
-				start: d.Date(2023, 12, 24),
-				end:   d.Date(2023, 12, 30),
+				start: Date(2023, 12, 24),
+				end:   Date(2023, 12, 30),
 			},
 		},
 	}
@@ -73,9 +113,8 @@ func TestLastFullWeekSundayStart(t *testing.T) {
 }
 
 func TestDate(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (time.Time, error) {
-		h := d.Date(in.Year(), in.Month(), in.Day())
+		h := Date(in.Year(), in.Month(), in.Day())
 		return h, nil
 	}
 
@@ -90,33 +129,31 @@ func TestDate(t *testing.T) {
 }
 
 func TestFirstDayOfMonth(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (time.Time, error) {
-		h := d.StartOfMonth(in)
+		h := StartOfMonth(in)
 		return h, nil
 	}
 
 	cases := trial.Cases[time.Time, time.Time]{
 		"normal date": {
 			Input:    time.Date(2020, 11, 15, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2020, 11, 1),
+			Expected: Date(2020, 11, 1),
 		},
 		"weird date": {
 			Input:    time.Date(2020, 2, 30, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2020, 3, 1),
+			Expected: Date(2020, 3, 1),
 		},
 		"another weird date": {
 			Input:    time.Date(2020, 0, 0, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2019, 11, 1),
+			Expected: Date(2019, 11, 1),
 		},
 	}
 	trial.New(fn, cases).SubTest(t)
 }
 
 func TestPrevMonthToDate(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
-		start, end := d.PrevMonthToDate(in)
+		start, end := PrevMonthToDate(in)
 		return output{
 			start: start,
 			end:   end,
@@ -125,31 +162,31 @@ func TestPrevMonthToDate(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"leap day": {
-			Input: d.Date(2024, 3, 31),
+			Input: Date(2024, 3, 31),
 			Expected: output{
-				start: d.Date(2024, 2, 1),
-				end:   d.Date(2024, 2, 29),
+				start: Date(2024, 2, 1),
+				end:   Date(2024, 2, 29),
 			},
 		},
 		"smaller prev month": {
-			Input: d.Date(2024, 5, 31),
+			Input: Date(2024, 5, 31),
 			Expected: output{
-				start: d.Date(2024, 4, 1),
-				end:   d.Date(2024, 4, 30),
+				start: Date(2024, 4, 1),
+				end:   Date(2024, 4, 30),
 			},
 		},
 		"prev year": {
-			Input: d.Date(2024, 1, 15),
+			Input: Date(2024, 1, 15),
 			Expected: output{
-				start: d.Date(2023, 12, 1),
-				end:   d.Date(2023, 12, 15),
+				start: Date(2023, 12, 1),
+				end:   Date(2023, 12, 15),
 			},
 		},
 		"normal date": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2024, 1, 1),
-				end:   d.Date(2024, 1, 15),
+				start: Date(2024, 1, 1),
+				end:   Date(2024, 1, 15),
 			},
 		},
 	}
@@ -158,25 +195,25 @@ func TestPrevMonthToDate(t *testing.T) {
 }
 
 func TestWeekAddStartOfWeek(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
+	d := NewWeek(time.Monday, time.Sunday)
 	type input struct {
 		date  time.Time
 		weeks int
 	}
 	fn := func(in input) (time.Time, error) {
-		h := d.WeekAdd(in.date, in.weeks)
+		h := WeekAdd(in.date, in.weeks)
 		y := d.StartOfWeek(h)
 		return y, nil
 	}
 
 	cases := trial.Cases[input, time.Time]{
 		"normal day": {
-			Input:    input{d.Date(2024, 6, 26), -25},
-			Expected: d.Date(2024, 1, 1),
+			Input:    input{Date(2024, 6, 26), -25},
+			Expected: Date(2024, 1, 1),
 		},
 		"previous year": {
-			Input:    input{d.Date(2023, 1, 1), 0},
-			Expected: d.Date(2022, 12, 26),
+			Input:    input{Date(2023, 1, 1), 0},
+			Expected: Date(2022, 12, 26),
 		},
 	}
 
@@ -184,9 +221,8 @@ func TestWeekAddStartOfWeek(t *testing.T) {
 }
 
 func TestPrevYearMtd(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
-		start, end := d.PrevYearMtd(in)
+		start, end := PrevYearMtd(in)
 		return output{
 			start: start,
 			end:   end,
@@ -195,17 +231,17 @@ func TestPrevYearMtd(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"leap day": {
-			Input: d.Date(2024, 2, 29),
+			Input: Date(2024, 2, 29),
 			Expected: output{
-				start: d.Date(2023, 2, 1),
-				end:   d.Date(2023, 2, 28),
+				start: Date(2023, 2, 1),
+				end:   Date(2023, 2, 28),
 			},
 		},
 		"normal date": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2023, 2, 1),
-				end:   d.Date(2023, 2, 15),
+				start: Date(2023, 2, 1),
+				end:   Date(2023, 2, 15),
 			},
 		},
 	}
@@ -214,9 +250,8 @@ func TestPrevYearMtd(t *testing.T) {
 }
 
 func TestPreviousYearToDate(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
-		start, end := d.PreviousYearToDate(in)
+		start, end := PreviousYearToDate(in)
 		return output{
 			start: start,
 			end:   end,
@@ -225,17 +260,17 @@ func TestPreviousYearToDate(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"leap day": {
-			Input: d.Date(2024, 2, 29),
+			Input: Date(2024, 2, 29),
 			Expected: output{
-				start: d.Date(2023, 1, 1),
-				end:   d.Date(2023, 2, 28),
+				start: Date(2023, 1, 1),
+				end:   Date(2023, 2, 28),
 			},
 		},
 		"normal date": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2023, 1, 1),
-				end:   d.Date(2023, 2, 15),
+				start: Date(2023, 1, 1),
+				end:   Date(2023, 2, 15),
 			},
 		},
 	}
@@ -244,24 +279,23 @@ func TestPreviousYearToDate(t *testing.T) {
 }
 
 func TestWeekAdd(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	type input struct {
 		date  time.Time
 		weeks int
 	}
 	fn := func(in input) (time.Time, error) {
-		h := d.WeekAdd(in.date, in.weeks)
+		h := WeekAdd(in.date, in.weeks)
 		return h, nil
 	}
 
 	cases := trial.Cases[input, time.Time]{
 		"one week forward": {
-			Input:    input{d.Date(2024, 6, 26), 1},
-			Expected: d.Date(2024, 7, 3),
+			Input:    input{Date(2024, 6, 26), 1},
+			Expected: Date(2024, 7, 3),
 		},
 		"two weeks back": {
-			Input:    input{d.Date(2024, 2, 29), -2},
-			Expected: d.Date(2024, 2, 15),
+			Input:    input{Date(2024, 2, 29), -2},
+			Expected: Date(2024, 2, 15),
 		},
 	}
 
@@ -269,7 +303,7 @@ func TestWeekAdd(t *testing.T) {
 }
 
 func TestPriorLastFullWeek(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
+	d := NewWeek(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
 		start, end := d.PriorLastFullWeek(in)
 		return output{
@@ -280,17 +314,17 @@ func TestPriorLastFullWeek(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"day one": {
-			Input: d.Date(2024, 3, 20),
+			Input: Date(2024, 3, 20),
 			Expected: output{
-				start: d.Date(2024, 3, 4),
-				end:   d.Date(2024, 3, 10),
+				start: Date(2024, 3, 4),
+				end:   Date(2024, 3, 10),
 			},
 		},
 		"day two": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2024, 1, 29),
-				end:   d.Date(2024, 2, 4),
+				start: Date(2024, 1, 29),
+				end:   Date(2024, 2, 4),
 			},
 		},
 	}
@@ -299,7 +333,7 @@ func TestPriorLastFullWeek(t *testing.T) {
 }
 
 func TestPrevYearLastFullWeek(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
+	d := NewWeek(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
 		start, end := d.PrevYearLastFullWeek(in)
 		return output{
@@ -310,17 +344,17 @@ func TestPrevYearLastFullWeek(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"day one": {
-			Input: d.Date(2024, 3, 31),
+			Input: Date(2024, 3, 31),
 			Expected: output{
-				start: d.Date(2023, 3, 20),
-				end:   d.Date(2023, 3, 26),
+				start: Date(2023, 3, 20),
+				end:   Date(2023, 3, 26),
 			},
 		},
 		"day two": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2023, 2, 6),
-				end:   d.Date(2023, 2, 12),
+				start: Date(2023, 2, 6),
+				end:   Date(2023, 2, 12),
 			},
 		},
 	}
@@ -329,9 +363,8 @@ func TestPrevYearLastFullWeek(t *testing.T) {
 }
 
 func TestYearToDate(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
-		start, end := d.YearToDate(in)
+		start, end := YearToDate(in)
 		return output{
 			start: start,
 			end:   end,
@@ -340,17 +373,17 @@ func TestYearToDate(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"day one": {
-			Input: d.Date(2024, 3, 31),
+			Input: Date(2024, 3, 31),
 			Expected: output{
-				start: d.Date(2024, 1, 1),
-				end:   d.Date(2024, 3, 31),
+				start: Date(2024, 1, 1),
+				end:   Date(2024, 3, 31),
 			},
 		},
 		"day two": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2024, 1, 1),
-				end:   d.Date(2024, 2, 15),
+				start: Date(2024, 1, 1),
+				end:   Date(2024, 2, 15),
 			},
 		},
 	}
@@ -359,9 +392,8 @@ func TestYearToDate(t *testing.T) {
 }
 
 func TestFullMonth(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
-		start, end := d.FullMonth(in)
+		start, end := FullMonth(in)
 		return output{
 			start: start,
 			end:   end,
@@ -370,24 +402,24 @@ func TestFullMonth(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"day one": {
-			Input: d.Date(2024, 3, 15),
+			Input: Date(2024, 3, 15),
 			Expected: output{
-				start: d.Date(2024, 3, 1),
-				end:   d.Date(2024, 3, 31),
+				start: Date(2024, 3, 1),
+				end:   Date(2024, 3, 31),
 			},
 		},
 		"leap year": {
-			Input: d.Date(2024, 2, 15),
+			Input: Date(2024, 2, 15),
 			Expected: output{
-				start: d.Date(2024, 2, 1),
-				end:   d.Date(2024, 2, 29),
+				start: Date(2024, 2, 1),
+				end:   Date(2024, 2, 29),
 			},
 		},
 		"year end": {
-			Input: d.Date(2024, 12, 15),
+			Input: Date(2024, 12, 15),
 			Expected: output{
-				start: d.Date(2024, 12, 1),
-				end:   d.Date(2024, 12, 31),
+				start: Date(2024, 12, 1),
+				end:   Date(2024, 12, 31),
 			},
 		},
 	}
@@ -396,9 +428,8 @@ func TestFullMonth(t *testing.T) {
 }
 
 func TestPrevMonth(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (output, error) {
-		start, end := d.PrevMonth(in)
+		start, end := PrevMonth(in)
 		return output{
 			start: start,
 			end:   end,
@@ -407,24 +438,24 @@ func TestPrevMonth(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"day one": {
-			Input: d.Date(2024, 3, 15),
+			Input: Date(2024, 3, 15),
 			Expected: output{
-				start: d.Date(2024, 2, 1),
-				end:   d.Date(2024, 2, 29),
+				start: Date(2024, 2, 1),
+				end:   Date(2024, 2, 29),
 			},
 		},
 		"leap year": {
-			Input: d.Date(2024, 4, 15),
+			Input: Date(2024, 4, 15),
 			Expected: output{
-				start: d.Date(2024, 3, 1),
-				end:   d.Date(2024, 3, 31),
+				start: Date(2024, 3, 1),
+				end:   Date(2024, 3, 31),
 			},
 		},
 		"new year": {
-			Input: d.Date(2024, 1, 15),
+			Input: Date(2024, 1, 15),
 			Expected: output{
-				start: d.Date(2023, 12, 1),
-				end:   d.Date(2023, 12, 31),
+				start: Date(2023, 12, 1),
+				end:   Date(2023, 12, 31),
 			},
 		},
 	}
@@ -432,50 +463,47 @@ func TestPrevMonth(t *testing.T) {
 	trial.New(fn, cases).SubTest(t)
 }
 
-
 func TestDay(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (time.Time, error) {
-		h := d.Day(in)
+		h := Day(in)
 		return h, nil
 	}
 
 	cases := trial.Cases[time.Time, time.Time]{
 		"normal date": {
 			Input:    time.Date(2020, 11, 15, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2020, 11, 15),
+			Expected: Date(2020, 11, 15),
 		},
 		"weird date": {
 			Input:    time.Date(2020, 2, 30, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2020, 2, 30),
+			Expected: Date(2020, 2, 30),
 		},
 		"another weird date": {
 			Input:    time.Date(2020, 0, 0, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2019, 11, 30),
+			Expected: Date(2019, 11, 30),
 		},
 	}
 	trial.New(fn, cases).SubTest(t)
 }
 
 func TestLastDayOfMonth(t *testing.T) {
-	d := NewBase(time.Monday, time.Sunday)
 	fn := func(in time.Time) (time.Time, error) {
-		h := d.LastDayOfMonth(in)
+		h := LastDayOfMonth(in)
 		return h, nil
 	}
 
 	cases := trial.Cases[time.Time, time.Time]{
 		"normal date": {
 			Input:    time.Date(2024, 11, 15, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2024, 11, 30),
+			Expected: Date(2024, 11, 30),
 		},
 		"weird date": {
 			Input:    time.Date(2024, 2, 30, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2024, 3, 31),
+			Expected: Date(2024, 3, 31),
 		},
 		"another weird date": {
 			Input:    time.Date(2024, 0, 0, 15, 5, 5, 5, time.UTC),
-			Expected: d.Date(2023, 11, 30),
+			Expected: Date(2023, 11, 30),
 		},
 	}
 	trial.New(fn, cases).SubTest(t)

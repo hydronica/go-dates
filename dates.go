@@ -1,180 +1,226 @@
 package dates
 
-import "time"
+import (
+	"log/slog"
+	"time"
+)
 
 // Default start and end dates for the week
 // can be changed if the definition of a week is different
 // for example in the US, the week starts on Sunday
 
 // a helper library for date (no time) calculations
+// for example, getting the start and end dates of the current week, previous week, etc.
 
-type Base struct {
-	weekStart time.Weekday  // starting weekday of the week
-	weekEnd   time.Weekday  // ending weekday of the week
-	oneDay    time.Duration // default 24 hours
+const (
+	OneDay       = time.Hour * 24 // duration for one day 24 hours
+	OneWeek      = OneDay * 7     // duration for one week 7 days or 168 hours
+	StartDefault = time.Sunday    // default weekday start of the week
+	EndDefault   = time.Saturday  // default weekday end of the week
+)
+
+type Week struct {
+	weekStart time.Weekday // starting weekday of the week
+	weekEnd   time.Weekday // ending weekday of the week
 }
 
-func NewBase(weekStart, weekEnd time.Weekday) Base {
-	return Base{
-		weekStart: weekStart,
-		weekEnd:   weekEnd,
-		oneDay:    time.Hour * 24,
+// New returns a new Week with the given start and end days.
+// First value should be start of week, second value should be end of week.
+// For example New(time.Monday, time.Sunday), extra values are ignored
+// leave empty to use the default week start and end weekdays i.e., NewWeek()
+func NewWeek(day ...time.Weekday) Week {
+	var day1, day2 time.Weekday
+
+	for i, d := range day {
+		switch i {
+		case 0:
+			day1 = d
+		case 1:
+			day2 = d
+		}
 	}
+
+	w := Week{
+		weekStart: StartDefault,
+		weekEnd:   EndDefault,
+	}
+
+	if len(day) < 2 {
+		slog.Warn("not enough days given, using default")
+		return w
+	}
+
+	if day1 == time.Sunday && day1 != time.Saturday {
+		slog.Warn("there are not 7 days in given week, using default")
+		return w
+	}
+	test := day1 - 1
+	if day1 > time.Sunday && test != day2 {
+		slog.Warn("week start and end days are not consecutive, using default")
+		return w
+	}
+
+	w.weekStart = day1
+	w.weekEnd = day2
+
+	return w
 }
 
 // Date provides a shorthand for createing a time.Date truncating the time.
 // timezone is ignored and UTC is used
-func (d Base) Date(year int, month time.Month, day int) time.Time {
+func Date(year int, month time.Month, day int) time.Time {
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 }
 
 // Day returns the tuncated date of the given time t
-func (d Base) Day(t time.Time) time.Time {
-	return d.Date(t.Year(), t.Month(), t.Day())
+func Day(t time.Time) time.Time {
+	return Date(t.Year(), t.Month(), t.Day())
 }
 
 // LastDayOfMonth from the given t time
-func (d Base) LastDayOfMonth(t time.Time) time.Time {
-	return d.Date(t.Year(), t.Month()+1, 0)
+func LastDayOfMonth(t time.Time) time.Time {
+	return Date(t.Year(), t.Month()+1, 0)
 }
 
 // WeekAdd returns t time with weeks added (use negative value to subtract)
-func (d Base) WeekAdd(t time.Time, weeks int) time.Time {
-	t = t.Add(d.oneDay * 7 * time.Duration(weeks))
+func WeekAdd(t time.Time, weeks int) time.Time {
+	t = t.Add(OneWeek * time.Duration(weeks))
 	return t
 }
 
-// StartOfWeek reutrns the date of the of the start of the week less than or equal to the given date
-func (d Base) StartOfWeek(t time.Time) time.Time {
+// StartOfWeek reutrns the date of the of the start of the week less than or equal to the given date t,
+// which is the first day of the week back from the given time t
+func (d Week) StartOfWeek(t time.Time) time.Time {
 	// time is already the start of the week
 	if t.Weekday() == d.weekStart {
-		return d.Date(t.Year(), t.Month(), t.Day())
+		return Date(t.Year(), t.Month(), t.Day())
 	}
 	// subtract days until we reach the start of the week
 	for t.Weekday() != d.weekStart {
-		t = t.Add(-d.oneDay)
+		t = t.Add(-OneDay)
 	}
-	return d.Date(t.Year(), t.Month(), t.Day())
+	return Date(t.Year(), t.Month(), t.Day())
 }
 
 // LastFullWeek returns the start and end dates of the last full week
-func (d Base) LastFullWeek(t time.Time) (start, end time.Time) {
+func (d Week) LastFullWeek(t time.Time) (start, end time.Time) {
 	t = d.StartOfWeek(t)
-	start = t.Add(d.oneDay * -7)
-	end = start.Add(d.oneDay * 6)
+	start = t.Add(-OneWeek)
+	end = start.Add(OneDay * 6)
 	return start, end
 }
 
 // PriorLastFullWeek returns the start and end dates of the week prior to the last full week
-func (d Base) PriorLastFullWeek(t time.Time) (start, end time.Time) {
+// or two weeks ago
+func (d Week) PriorLastFullWeek(t time.Time) (start, end time.Time) {
 	lfwStart, _ := d.LastFullWeek(t)
-	start = lfwStart.Add(d.oneDay * -7)
-	end = start.Add(d.oneDay * 6)
+	start = lfwStart.Add(-OneWeek)
+	end = start.Add(OneDay * 6)
 	return start, end
 }
 
 // PrevYearLastFullWeek returns the start and end dates of the last full week of the previous year
-func (d Base) PrevYearLastFullWeek(t time.Time) (start, end time.Time) {
+func (d Week) PrevYearLastFullWeek(t time.Time) (start, end time.Time) {
 	startLfw, _ := d.LastFullWeek(t)
-	start = d.StartOfWeek(startLfw.Add(d.oneDay * -363))
-	end = start.Add(d.oneDay * 6)
+	start = d.StartOfWeek(startLfw.Add(OneDay * -363))
+	end = start.Add(OneDay * 6)
 	return start, end
 }
 
 // MonthToDate returns the start and end dates of the current month
-func (d Base) MonthToDate(t time.Time) (start, end time.Time) {
-	start = d.Date(t.Year(), t.Month(), 1)
+func MonthToDate(t time.Time) (start, end time.Time) {
+	start = Date(t.Year(), t.Month(), 1)
 	end = t
 	return start, end
 }
 
 // FullMonth returns the start and end dates of the current month
-func (d Base) FullMonth(t time.Time) (start, end time.Time) {
-	start = d.Date(t.Year(), t.Month(), 1)
-	end = d.FirstOfNextMonth(t).Add(-d.oneDay)
+func FullMonth(t time.Time) (start, end time.Time) {
+	start = Date(t.Year(), t.Month(), 1)
+	end = FirstOfNextMonth(t).Add(-OneDay)
 	return start, end
 }
 
 // FirstOfNextMonth returns the 1st of the next month from time t
-func (d Base) FirstOfNextMonth(t time.Time) time.Time {
+func FirstOfNextMonth(t time.Time) time.Time {
 	year := t.Year()
 	nextMonth := t.Month() + 1
 	if nextMonth > time.December {
 		nextMonth = time.January
 		year = t.Year() + 1
 	}
-	return d.Date(year, nextMonth, 1)
+	return Date(year, nextMonth, 1)
 }
 
 // PrevMonth returns the start and end dates of the previous month
-func (d Base) PrevMonth(t time.Time) (start, end time.Time) {
+func PrevMonth(t time.Time) (start, end time.Time) {
 	prevMonth := t.Month() - 1
 	year := t.Year()
 	if prevMonth < 1 {
 		prevMonth = time.December
 		year = t.Year() - 1
 	}
-	t = d.Date(year, prevMonth, t.Day())
+	t = Date(year, prevMonth, t.Day())
 
-	start = d.Date(year, prevMonth, 1)
-	end = d.FirstOfNextMonth(t).Add(-d.oneDay)
+	start = Date(year, prevMonth, 1)
+	end = FirstOfNextMonth(t).Add(-OneDay)
 
 	return start, end
 }
 
 // PrevMonthToDate returns the start and end dates of the previous month to the given date (t)
-func (d Base) PrevMonthToDate(t time.Time) (start, end time.Time) {
+func PrevMonthToDate(t time.Time) (start, end time.Time) {
 	prevMonth := t.Month() - 1
 	year := t.Year()
 	if prevMonth < 1 {
 		prevMonth = time.December
 		year = t.Year() - 1
 	}
-	lm := d.Date(year, prevMonth, t.Day())
+	lm := Date(year, prevMonth, t.Day())
 	// if subtracking a month results in a date in the same month as t
 	// this means the day is greater than the last day of the previous month
 	if lm.Month() == t.Month() {
-		return d.PrevMonth(lm)
+		return PrevMonth(lm)
 	}
 
-	return d.MonthToDate(lm)
+	return MonthToDate(lm)
 }
 
 // PrevYearMtd returns the start and end dates up to t
 // of the same month in the previous year
 // if a leap day is given for t the previous year's last day will be feb 28th
-func (d Base) PrevYearMtd(t time.Time) (start, end time.Time) {
+func PrevYearMtd(t time.Time) (start, end time.Time) {
 	prevYear := t.Year() - 1
 
-	pEnd := d.Date(prevYear, t.Month(), t.Day())
+	pEnd := Date(prevYear, t.Month(), t.Day())
 	if pEnd.Month() > t.Month() {
-		pEnd = pEnd.Add(-d.oneDay)
+		pEnd = pEnd.Add(-OneDay)
 	}
 
-	start = d.StartOfMonth(pEnd)
+	start = StartOfMonth(pEnd)
 
 	return start, pEnd
 }
 
 // YearToDate returns the start and end dates of the current year
-func (d Base) YearToDate(t time.Time) (start, end time.Time) {
-	start = d.Date(t.Year(), 1, 1)
+func YearToDate(t time.Time) (start, end time.Time) {
+	start = Date(t.Year(), 1, 1)
 	end = t
 	return start, end
 }
 
 // PreviousYearToDate returns the start and end dates of the previous year
-func (d Base) PreviousYearToDate(t time.Time) (start, end time.Time) {
-	start = d.Date(t.Year()-1, 1, 1)
-	end = d.Date(t.Year()-1, t.Month(), t.Day())
+func PreviousYearToDate(t time.Time) (start, end time.Time) {
+	start = Date(t.Year()-1, 1, 1)
+	end = Date(t.Year()-1, t.Month(), t.Day())
 	// accounts for leap day
 	if end.Month() > t.Month() {
-		end = end.Add(-d.oneDay)
+		end = end.Add(-OneDay)
 	}
 	return start, end
 }
 
 // StartOfMonth returns 1st of current month @ midnight UTC
-func (d Base) StartOfMonth(t time.Time) time.Time {
-	return d.Date(t.Year(), t.Month(), 1)
+func StartOfMonth(t time.Time) time.Time {
+	return Date(t.Year(), t.Month(), 1)
 }
