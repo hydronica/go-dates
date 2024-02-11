@@ -344,21 +344,18 @@ func TestPrevYearLastFullWeek(t *testing.T) {
 
 	cases := trial.Cases[time.Time, output]{
 		"day one": {
-			Input: Date(2024, 3, 31),
-			Expected: output{
-				start: Date(2023, 3, 20),
-				end:   Date(2023, 3, 26),
-			},
+			Input:    Date(2024, 3, 31),
+			Expected: output{start: Date(2023, 3, 20), end: Date(2023, 3, 26)},
 		},
 		"day two": {
-			Input: Date(2024, 2, 15),
-			Expected: output{
-				start: Date(2023, 2, 6),
-				end:   Date(2023, 2, 12),
-			},
+			Input:    Date(2024, 2, 15),
+			Expected: output{start: Date(2023, 2, 6), end: Date(2023, 2, 12)},
+		},
+		"day three": {
+			Input:    Date(2023, 1, 18),
+			Expected: output{start: Date(2022, 1, 10), end: Date(2022, 1, 16)},
 		},
 	}
-
 	trial.New(fn, cases).SubTest(t)
 }
 

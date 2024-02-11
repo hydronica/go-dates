@@ -15,8 +15,8 @@ import (
 const (
 	OneDay       = time.Hour * 24 // duration for one day 24 hours
 	OneWeek      = OneDay * 7     // duration for one week 7 days or 168 hours
-	StartDefault = time.Sunday    // default weekday start of the week
-	EndDefault   = time.Saturday  // default weekday end of the week
+	StartDefault = time.Monday    // default weekday start of the week
+	EndDefault   = time.Sunday    // default weekday end of the week
 )
 
 type Week struct {
@@ -88,6 +88,15 @@ func WeekAdd(t time.Time, weeks int) time.Time {
 	return t
 }
 
+// PriorLastFullWeek returns the start and end dates of the week prior to the last full week
+// or two weeks ago
+func (d Week) PriorLastFullWeek(t time.Time) (start, end time.Time) {
+	lfwStart, _ := d.LastFullWeek(t)
+	start = lfwStart.Add(-OneWeek)
+	end = start.Add(OneDay * 6)
+	return start, end
+}
+
 // StartOfWeek reutrns the date of the of the start of the week less than or equal to the given date t,
 // which is the first day of the week back from the given time t
 func (d Week) StartOfWeek(t time.Time) time.Time {
@@ -110,19 +119,10 @@ func (d Week) LastFullWeek(t time.Time) (start, end time.Time) {
 	return start, end
 }
 
-// PriorLastFullWeek returns the start and end dates of the week prior to the last full week
-// or two weeks ago
-func (d Week) PriorLastFullWeek(t time.Time) (start, end time.Time) {
-	lfwStart, _ := d.LastFullWeek(t)
-	start = lfwStart.Add(-OneWeek)
-	end = start.Add(OneDay * 6)
-	return start, end
-}
-
 // PrevYearLastFullWeek returns the start and end dates of the last full week of the previous year
 func (d Week) PrevYearLastFullWeek(t time.Time) (start, end time.Time) {
 	startLfw, _ := d.LastFullWeek(t)
-	start = d.StartOfWeek(startLfw.Add(OneDay * -363))
+	start = d.StartOfWeek(startLfw.Add(OneDay * -363)) // this is attempting to account for leap year
 	end = start.Add(OneDay * 6)
 	return start, end
 }
